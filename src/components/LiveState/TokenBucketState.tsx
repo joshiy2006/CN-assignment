@@ -5,9 +5,10 @@ import type { TokenBucketSnapshot } from '../../engine/types'
 interface Props {
   state: TokenBucketSnapshot
   t: number
+  standalone?: boolean
 }
 
-export default function TokenBucketState({ state, t }: Props) {
+export default function TokenBucketState({ state, t, standalone }: Props) {
   const { tokens, capacity, rate } = state
   const fillPct = Math.min(1, tokens / capacity) * 100
   const dotCount = Math.floor(tokens)
@@ -27,7 +28,7 @@ export default function TokenBucketState({ state, t }: Props) {
     <div
       className="panel"
       style={{
-        flex: '0 0 55%',
+        flex: standalone ? '1 1 auto' : '0 0 55%',
         padding: '16px',
         display: 'flex',
         flexDirection: 'column',

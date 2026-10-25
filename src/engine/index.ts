@@ -7,6 +7,7 @@ import type {
   SimSnapshot,
   DecisionEntry,
   TimelineEvent,
+  LogEvent,
   Algorithm,
   TrafficPattern,
   SimSpeed,
@@ -14,7 +15,8 @@ import type {
 import { createPattern, type PatternGenerator } from './patterns'
 
 const TIMELINE_WINDOW = 10  // seconds of timeline history to keep
-const LOG_MAX = 4           // max decision log entries shown
+const LOG_MAX = 4           // max decision log entries for "Why" panel
+const FULL_LOG_MAX = 200    // max full step-by-step log entries
 
 let _idCounter = 0
 function nextId(): number { return ++_idCounter }
@@ -51,6 +53,7 @@ export class SimEngine {
 
   // Log & timeline
   private decisions: DecisionEntry[] = []
+  private fullLog: LogEvent[] = []
   private timeline: TimelineEvent[] = []
 
   // Pattern generator
@@ -81,6 +84,7 @@ export class SimEngine {
     this.lbRate = this.rate
     // Log
     this.decisions = []
+    this.fullLog = []
     this.timeline = []
     // Reset pattern generator
     this.gen = createPattern(this.pattern, this.inputRate, this.capacity, this.windowSeconds)
@@ -88,6 +92,11 @@ export class SimEngine {
 
   start(): void { this.running = true }
   stop(): void  { this.running = false }
+
+  /** Clear only the full step-by-step log without resetting simulation state. */
+  clearFullLog(): void {
+    this.fullLog = []
+  }
 
   /**
    * Advance simulation by dt simulated seconds.
@@ -182,6 +191,7 @@ export class SimEngine {
       },
 
       decisions: [...this.decisions],
+      fullLog: this.fullLog.slice(0, FULL_LOG_MAX),
       timeline: this._filteredTimeline(),
     }
   }
@@ -212,11 +222,11 @@ export class SimEngine {
       if (this.tokens >= 1) {
         this.tokens -= 1
         this.accepted++
-        this._log('token spent', 'allowed')
+        this._log('token spent', 'allowed', { tokensAfter: this.tokens })
         this._addTimeline('allowed')
       } else {
         this.rejected++
-        this._log('no token available', 'rejected')
+        this._log('no token available', 'rejected', { tokensAfter: this.tokens })
         this._addTimeline('rejected')
       }
     }
@@ -229,11 +239,11 @@ export class SimEngine {
       if (this.lbQueue.length < this.lbCapacity) {
         this.lbQueue.push(nextId())
         this.accepted++
-        this._log('entered queue', 'queued')
+        this._log('entered queue', 'queued', { queueAfter: this.lbQueue.length })
         this._addTimeline('enqueued')
       } else {
         this.rejected++
-        this._log('queue full, dropped', 'rejected')
+        this._log('queue full, dropped', 'rejected', { queueAfter: this.lbQueue.length })
         this._addTimeline('rejected')
       }
     }
@@ -245,7 +255,7 @@ export class SimEngine {
       for (let i = 0; i < n; i++) {
         this.lbQueue.shift()
         this.lbServed++
-        this._log('leaked to server', 'served')
+        this._log('leaked to server', 'served', { queueAfter: this.lbQueue.length })
         this._addTimeline('served')
       }
       this.lbCarry -= n
@@ -256,11 +266,24 @@ export class SimEngine {
     }
   }
 
-  private _log(reason: string, type: DecisionEntry['type']): void {
+  private _log(reason: string, type: DecisionEntry['type'], extra?: { tokensAfter?: number; queueAfter?: number }): void {
     const entry: DecisionEntry = { id: nextId(), reason, type, t: this.t }
     this.decisions.unshift(entry)
     if (this.decisions.length > LOG_MAX) {
       this.decisions.length = LOG_MAX
+    }
+    // Full log (newest-first, bounded)
+    const logEntry: LogEvent = {
+      id: entry.id,
+      t: this.t,
+      algorithm: this.algorithm,
+      type,
+      reason,
+      ...(extra ?? {}),
+    }
+    this.fullLog.unshift(logEntry)
+    if (this.fullLog.length > FULL_LOG_MAX) {
+      this.fullLog.length = FULL_LOG_MAX
     }
   }
 

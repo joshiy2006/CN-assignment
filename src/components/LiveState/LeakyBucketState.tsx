@@ -5,6 +5,7 @@ import type { LeakyBucketSnapshot } from '../../engine/types'
 interface Props {
   state: LeakyBucketSnapshot
   t: number
+  standalone?: boolean
 }
 
 // Stacked-waves SVG icon (amber)
@@ -18,7 +19,7 @@ function WavesIcon() {
   )
 }
 
-export default function LeakyBucketState({ state, t }: Props) {
+export default function LeakyBucketState({ state, t, standalone }: Props) {
   const { queued, capacity, rate, served } = state
   const slots = Array.from({ length: capacity }, (_, i) => i < queued)
 
@@ -26,7 +27,7 @@ export default function LeakyBucketState({ state, t }: Props) {
     <div
       className="panel"
       style={{
-        flex: '0 0 55%',
+        flex: standalone ? '1 1 auto' : '0 0 55%',
         padding: '16px',
         display: 'flex',
         flexDirection: 'column',

@@ -3,12 +3,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { engine } from '../engine'
-import type { SimSnapshot, SimParams, Algorithm, TrafficPattern, SimSpeed } from '../engine/types'
+import type { SimSnapshot, SimParams } from '../engine/types'
 
 export interface SimControls {
   snapshot: SimSnapshot
   toggleRunning: () => void
   reset: () => void
+  clearLog: () => void
   sendRequests: (n: number) => void
   setParams: (p: Partial<SimParams>) => void
   particles: ParticleData[]
@@ -139,5 +140,10 @@ export function useSimulator(): SimControls {
     setSnapshot(engine.snapshot())
   }, [])
 
-  return { snapshot, toggleRunning, reset, sendRequests, setParams, particles }
+  const clearLog = useCallback(() => {
+    engine.clearFullLog()
+    setSnapshot(engine.snapshot())
+  }, [])
+
+  return { snapshot, toggleRunning, reset, clearLog, sendRequests, setParams, particles }
 }

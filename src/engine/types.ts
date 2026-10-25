@@ -16,6 +16,18 @@ export interface SimParams {
 
 export type DecisionType = 'allowed' | 'rejected' | 'queued' | 'served'
 
+// Full step-by-step log entry (all events, unbounded, newest-first)
+export interface LogEvent {
+  id: number
+  t: number
+  algorithm: Algorithm
+  type: DecisionType
+  reason: string
+  // extra context
+  tokensAfter?: number     // token bucket: tokens remaining after event
+  queueAfter?: number      // leaky bucket: queue length after event
+}
+
 export interface DecisionEntry {
   id: number
   reason: string
@@ -69,8 +81,11 @@ export interface SimSnapshot {
   tokenBucket: TokenBucketSnapshot
   leakyBucket: LeakyBucketSnapshot
 
-  // log (newest first, max 4)
+  // log (newest first, max 4) — for the "Why last decisions" panel
   decisions: DecisionEntry[]
+
+  // full step-by-step event log (newest first, capped at 200 for UI)
+  fullLog: LogEvent[]
 
   // timeline events (sorted by t, last 10s of sim time)
   timeline: TimelineEvent[]

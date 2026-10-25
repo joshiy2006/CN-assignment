@@ -1,22 +1,46 @@
 // ─── App Root ──────────────────────────────────────────────────────────────────
-import React, { useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useSimulator } from './hooks/useSimulator'
-import { engine } from './engine'
-import TabBar from './components/TabBar'
+import TabBar, { type ActiveTab } from './components/TabBar'
 import MainCard from './components/MainCard'
 import TrafficConsole from './components/TrafficConsole'
 import ExplainerCard from './components/ExplainerCard'
+import StepLog from './components/StepLog'
+import CompareView from './components/CompareView'
 import type { Algorithm } from './engine/types'
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('token')
   const controls = useSimulator()
   const { snapshot, particles } = controls
 
-  const handleTabChange = useCallback((alg: Algorithm) => {
-    // Set algorithm first, then reset so the new algo state is applied
-    controls.setParams({ algorithm: alg })
-    controls.reset()
+  const handleTabChange = useCallback((tab: ActiveTab) => {
+    setActiveTab(tab)
+    if (tab === 'token' || tab === 'leaky') {
+      // Switch algorithm and reset
+      controls.setParams({ algorithm: tab as Algorithm })
+      controls.reset()
+    }
+    // 'compare' tab keeps its own independent engines
   }, [controls])
+
+  if (activeTab === 'compare') {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#fafbfc',
+          padding: '32px 24px',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}
+      >
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <TabBar active={activeTab} onChange={handleTabChange} />
+          <CompareView />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -30,7 +54,7 @@ export default function App() {
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
         {/* Tab Bar */}
-        <TabBar active={snapshot.algorithm} onChange={handleTabChange} />
+        <TabBar active={activeTab} onChange={handleTabChange} />
 
         {/* Two-column grid */}
         <div
@@ -42,9 +66,13 @@ export default function App() {
           }}
           className="sim-grid"
         >
-          {/* Left column: Main card + Explainer */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {/* Left column: Main card + Step Log + Explainer */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <MainCard snapshot={snapshot} particles={particles} />
+            <StepLog
+              events={snapshot.fullLog}
+              onClear={controls.clearLog}
+            />
             <ExplainerCard
               algorithm={snapshot.algorithm}
               capacity={snapshot.capacity}

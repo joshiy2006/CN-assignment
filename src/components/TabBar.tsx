@@ -1,23 +1,22 @@
 // ─── Tab Bar Component ─────────────────────────────────────────────────────────
 import React from 'react'
-import type { Algorithm } from '../engine/types'
+
+export type ActiveTab = 'token' | 'leaky' | 'compare'
 
 interface Tab {
-  id: Algorithm | 'fixed' | 'sliding'
+  id: ActiveTab
   label: string
-  disabled?: boolean
 }
 
 const TABS: Tab[] = [
   { id: 'token',   label: 'Token Bucket' },
   { id: 'leaky',   label: 'Leaky Bucket' },
-  { id: 'fixed',   label: 'Fixed Window',       disabled: true },
-  { id: 'sliding', label: 'Sliding Window Log',  disabled: true },
+  { id: 'compare', label: 'Compare Algorithms' },
 ]
 
 interface Props {
-  active: Algorithm
-  onChange: (alg: Algorithm) => void
+  active: ActiveTab
+  onChange: (tab: ActiveTab) => void
 }
 
 export default function TabBar({ active, onChange }: Props) {
@@ -33,50 +32,38 @@ export default function TabBar({ active, onChange }: Props) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 4,
         }}
       >
         {TABS.map(tab => {
           const isActive = tab.id === active
-          const isDisabled = tab.disabled
           return (
             <button
               key={tab.id}
-              onClick={() => {
-                if (!isDisabled && (tab.id === 'token' || tab.id === 'leaky')) {
-                  onChange(tab.id)
-                }
-              }}
-              title={isDisabled ? 'Coming soon' : undefined}
+              onClick={() => onChange(tab.id)}
               aria-label={tab.label}
-              disabled={isDisabled}
+              aria-pressed={isActive}
               style={{
                 padding: '10px 16px',
                 borderRadius: 20,
                 border: 'none',
-                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 fontFamily: 'Inter, system-ui, sans-serif',
                 fontSize: 14,
                 fontWeight: isActive ? 600 : 500,
                 textAlign: 'left',
                 transition: 'background 0.15s, color 0.15s',
                 background: isActive ? '#10e08f' : 'transparent',
-                color: isActive
-                  ? '#064e3b'
-                  : isDisabled
-                  ? '#94a3b8'
-                  : '#475569',
-                opacity: isDisabled ? 0.5 : 1,
-                whiteSpace: 'nowrap',
+                color: isActive ? '#064e3b' : '#475569',
               }}
               onMouseEnter={e => {
-                if (!isActive && !isDisabled) {
+                if (!isActive) {
                   ;(e.currentTarget as HTMLButtonElement).style.background = '#f1f5f9'
                 }
               }}
               onMouseLeave={e => {
-                if (!isActive && !isDisabled) {
+                if (!isActive) {
                   ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
                 }
               }}
